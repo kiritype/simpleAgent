@@ -1,0 +1,51 @@
+name: Policy News Agent (Daily)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 22 * * *"  # 07:00 KST
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run agent
+        env:
+          SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+
+          # Optional (Repo Variables)
+          POLICY_KEYWORD: ${{ vars.POLICY_KEYWORD }}
+          DAYS_RANGE: ${{ vars.DAYS_RANGE }}
+          MAX_ITEMS_FOR_ANALYSIS: ${{ vars.MAX_ITEMS_FOR_ANALYSIS }}
+          MAX_BODY_CHARS_PER_ITEM: ${{ vars.MAX_BODY_CHARS_PER_ITEM }}
+          MISTRAL_MODEL: ${{ vars.MISTRAL_MODEL }}
+          SEND_EMAIL: ${{ vars.SEND_EMAIL }}
+          OUT_DIR: out
+        run: |
+          python main.py
+
+      - name: Upload artifacts (out/)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: out
+          path: out
